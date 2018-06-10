@@ -4,6 +4,8 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 
 public class DataMonitor implements Watcher {
+    static final String ZNODE = "/znode_testowy";
+
     private ZooKeeper zooKeeper;
     private DataMonitorListener listener;
     boolean dead;
@@ -28,7 +30,7 @@ public class DataMonitor implements Watcher {
         System.out.println(event.toString());
         String path = event.getPath();
         try {
-            zooKeeper.exists("/znode_testowy", this);
+            zooKeeper.exists(ZNODE, this);
         } catch (KeeperException | InterruptedException e) {
             e.printStackTrace();
         }
@@ -41,9 +43,9 @@ public class DataMonitor implements Watcher {
             }
         } else if (event.getType() == Event.EventType.NodeCreated) {
             System.out.println("created");
-            if (path.equals("/znode_testowy")) {
+            if (path.equals(ZNODE)) {
                 try {
-                    zooKeeper.getChildren("/znode_testowy", this);
+                    zooKeeper.getChildren(ZNODE, this);
                 } catch (KeeperException | InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -53,53 +55,13 @@ public class DataMonitor implements Watcher {
             System.out.println("deleted");
             listener.deleted(path);
         } else if (event.getType() == Event.EventType.NodeChildrenChanged) {
-            if (path.equals("/znode_testowy")) {
+            if (path.equals(ZNODE)) {
                 try {
-                    listener.childrenChanged(zooKeeper.getChildren("/znode_testowy", this).size());
+                    listener.childrenChanged(zooKeeper.getChildren(ZNODE, this).size());
                 } catch (KeeperException | InterruptedException e) {
                     e.printStackTrace();
                 }
             }
         }
     }
-
-//    @Override
-//    public void processResult(int rc, String path, Object ctx, Stat stat) {
-//        boolean exists;
-//        switch (Code.get(rc)) {
-//            case OK:
-//                exists = true;
-//                break;
-//            case NONODE:
-//                exists = false;
-//                break;
-//            case SESSIONEXPIRED:
-//            case NOAUTH:
-//                dead = true;
-//                listener.closing(rc);
-//                return;
-//            default:
-//                // Retry errors
-//                zooKeeper.exists(znode, true, this, null);
-//                return;
-//        }
-//
-//        byte b[] = null;
-//        if (exists) {
-//            try {
-//                b = zooKeeper.getData(znode, false, null);
-//            } catch (KeeperException e) {
-//                // We don't need to worry about recovering now. The watch
-//                // callbacks will kick off any exception handling
-//                e.printStackTrace();
-//            } catch (InterruptedException e) {
-//                return;
-//            }
-//        }
-//        if ((b == null && b != prevData)
-//                || (b != null && !Arrays.equals(prevData, b))) {
-//            listener.exists(b);
-//            prevData = b;
-//        }
-//    }
 }

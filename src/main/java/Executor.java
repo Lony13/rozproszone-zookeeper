@@ -1,24 +1,25 @@
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 
-public class Executor implements Runnable, DataMonitor.DataMonitorListener, Watcher {
+public class Executor extends Thread implements DataMonitor.DataMonitorListener, Watcher {
     private DataMonitor dataMonitor;
     private ZooKeeper zooKeeper;
     private Process child;
     private String exec[];
+    private static StructurePrinter structurePrinter;
 
     public Executor(String exec[]) throws IOException {
         this.exec = exec;
         this.zooKeeper = new ZooKeeper("127.0.0.1:3001", 3000, this);
         this.dataMonitor = new DataMonitor(zooKeeper, this);
+        structurePrinter = new StructurePrinter(zooKeeper);
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         if (args.length < 1) {
             System.err.println("USAGE: Executor program [args ...]");
             System.exit(2);
@@ -26,9 +27,19 @@ public class Executor implements Runnable, DataMonitor.DataMonitorListener, Watc
         String exec[] = new String[args.length];
         System.arraycopy(args, 0, exec, 0, exec.length);
         try {
-            new Executor(exec).run();
+            new Executor(exec).start();
         } catch (Exception exception) {
             exception.printStackTrace();
+        }
+        BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
+        while (true) {
+            if (input.readLine().equals("structure")) {
+                try {
+                    structurePrinter.printStructure(DataMonitor.ZNODE);
+                } catch (KeeperException | InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
@@ -112,37 +123,4 @@ public class Executor implements Runnable, DataMonitor.DataMonitorListener, Watc
             }
         }
     }
-
-//    @Override
-//    public void exists(byte[] data) {
-//        if (data == null) {
-//            if (child != null) {
-//                System.out.println("Killing process");
-//                child.destroy();
-//                try {
-//                    child.waitFor();
-//                } catch (InterruptedException e) {
-//                }
-//            }
-//            child = null;
-//        } else {
-//            if (child != null) {
-//                System.out.println("Stopping child");
-//                child.destroy();
-//                try {
-//                    child.waitFor();
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//            try {
-//                System.out.println("Starting child");
-//                child = Runtime.getRuntime().exec(exec);
-//                new StreamWriter(child.getInputStream(), System.out);
-//                new StreamWriter(child.getErrorStream(), System.err);
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//        }
-//    }
 }
